@@ -38,27 +38,19 @@ const httpServer = createServer(app);
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
-
   "https://procto-ai-frontend.vercel.app",
   "https://procto-ai-frontend-git-main-deepu-04s-projects.vercel.app",
-
   "https://proctoai-frontend.vercel.app",
-
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// ✅ CORS middleware
+// ✅ CORS middleware - FIXED
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log("Blocked by CORS:", origin);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
@@ -114,13 +106,11 @@ io.on("connection", (socket) => {
 
   socket.on("signal", (data) => {
     const { roomId, signalData } = data;
-
     socket.to(roomId).emit("signal", signalData);
   });
 
   socket.on("message", (data) => {
     const { roomId, message, sender } = data;
-
     io.to(roomId).emit("message", {
       message,
       sender,

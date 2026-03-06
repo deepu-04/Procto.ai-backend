@@ -36,6 +36,7 @@ const allowedOrigins = [
 "http://localhost:3000",
 "http://localhost:5173",
 "https://procto-ai-frontend.vercel.app",
+ "https://procto-ai-frontend-git-main-deepu-04s-projects.vercel.app",
 process.env.FRONTEND_URL
 ].filter(Boolean);
 

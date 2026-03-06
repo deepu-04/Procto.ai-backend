@@ -70,34 +70,54 @@ app.use("/api/user", analyticsRoutes);
 app.get("/api/health", (req, res) => {
 res.json({
 status: "OK",
-message: "Procto.ai backend running",
+message: "Procto.ai backend running"
 });
 });
 
 io.on("connection", (socket) => {
 console.log("User Connected:", socket.id);
 
-socket.on("join-interview", ({ roomId, role, email }) => {
-socket.join(roomId);
+socket.on("join-interview", (data) => {
+const roomId = data.roomId;
+const role = data.role;
+const email = data.email;
 
 ```
-console.log(`${role} (${email}) joined room: ${roomId}`);
+socket.join(roomId);
+
+console.log(role + " (" + email + ") joined room: " + roomId);
 
 socket.to(roomId).emit("user-connected", {
   socketId: socket.id,
-  role,
-  email,
+  role: role,
+  email: email
 });
 ```
 
 });
 
-socket.on("signal", ({ roomId, signalData }) => {
+socket.on("signal", (data) => {
+const roomId = data.roomId;
+const signalData = data.signalData;
+
+```
 socket.to(roomId).emit("signal", signalData);
+```
+
 });
 
-socket.on("message", ({ roomId, message, sender }) => {
-io.to(roomId).emit("message", { message, sender });
+socket.on("message", (data) => {
+const roomId = data.roomId;
+const message = data.message;
+const sender = data.sender;
+
+```
+io.to(roomId).emit("message", {
+  message: message,
+  sender: sender
+});
+```
+
 });
 
 socket.on("disconnect", () => {
@@ -111,5 +131,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-console.log(`Server running on port ${PORT}`);
+console.log("Server running on port " + PORT);
 });

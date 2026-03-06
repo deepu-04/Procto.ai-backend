@@ -1,12 +1,20 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
+import jwt from "jsonwebtoken"; // Added to generate the string for the frontend
 
+// Helper to generate the token string for the JSON response
+const signToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
+};
 
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
   const userExists = await User.findOne({ email });
+  
   if (userExists) {
     res.status(400);
     throw new Error("User already exists");
@@ -20,13 +28,18 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
+    // This sets the HTTP-only cookie
     generateToken(res, user._id);
+    
+    // Generate the token string to send to the frontend
+    const token = signToken(user._id);
 
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      token: token, // 🔥 FIXED: Frontend can now save this token
     });
   } else {
     res.status(400);
@@ -45,13 +58,18 @@ export const authUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
+  // This sets the HTTP-only cookie
   generateToken(res, user._id);
+
+  // Generate the token string to send to the frontend
+  const token = signToken(user._id);
 
   res.status(200).json({
     _id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
+    token: token, // 🔥 FIXED: Frontend can now save this token
   });
 });
 

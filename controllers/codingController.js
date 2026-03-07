@@ -1,122 +1,124 @@
-import CodingQuestion from "../models/codingQuestionModel.js";
 import asyncHandler from "express-async-handler";
+import CodingQuestion from "../models/codingQuestionModel.js";
+import Result from "../models/resultModel.js";
 
-// @desc    Submit a coding answer
-// @route   POST /api/coding/submit
-// @access  Private (Student)
+
+// ================= SUBMIT CODING ANSWER =================
+// POST /api/coding/submit
+// Student submits code
 const submitCodingAnswer = asyncHandler(async (req, res) => {
-  const { questionId, code, language } = req.body;
 
-  if (!code || !language || !questionId) {
+  const { examId, questionId, code, language } = req.body;
+
+  if (!examId || !questionId || !code || !language) {
     res.status(400);
-    throw new Error("Please provide all required fields");
+    throw new Error("Missing required fields");
   }
 
   const question = await CodingQuestion.findById(questionId);
+
   if (!question) {
     res.status(404);
-    throw new Error("Question not found");
+    throw new Error("Coding question not found");
   }
 
-  question.submittedAnswer = {
-    code,
-    language,
-    status: "pending", 
-    executionTime: 0, 
-  };
+  let result = await Result.findOne({
+    examId,
+    userId: req.user._id
+  });
 
-  const updatedQuestion = await question.save();
+  if (!result) {
+    result = await Result.create({
+      examId,
+      userId: req.user._id,
+      answers: {},
+      codingSubmissions: []
+    });
+  }
+
+  const existingSubmission = result.codingSubmissions.find(
+    (s) => s.questionId.toString() === questionId
+  );
+
+  if (existingSubmission) {
+
+    existingSubmission.code = code;
+    existingSubmission.language = language;
+
+  } else {
+
+    result.codingSubmissions.push({
+      questionId,
+      code,
+      language,
+      marks: 0
+    });
+
+  }
+
+  await result.save();
 
   res.status(200).json({
     success: true,
-    data: updatedQuestion,
+    message: "Coding answer saved successfully",
+    data: result
   });
+
 });
 
-// @desc    Create a new coding question
-// @route   POST /api/coding/question
-// @access  Private (Teacher)
+
+
+// ================= CREATE CODING QUESTION =================
+// POST /api/coding/question
+// Teacher creates coding question
 const createCodingQuestion = asyncHandler(async (req, res) => {
-  // FIX: Added 'image' and 'testCases' so they are actually saved to the database
-  const { question, description, image, testCases, examId } = req.body;
-  
-  console.log("Received coding question data:", {
+
+  const { question, description, examId } = req.body;
+
+  if (!question || !description || !examId) {
+    res.status(400);
+    throw new Error("Missing required fields");
+  }
+
+  const newQuestion = await CodingQuestion.create({
     question,
     description,
     examId,
-    testCasesCount: testCases ? testCases.length : 0
+    teacher: req.user._id
   });
 
-  if (!question || !description || !examId) {
-    const missingFields = [];
-    if (!question) missingFields.push("question");
-    if (!description) missingFields.push("description");
-    if (!examId) missingFields.push("examId");
+  res.status(201).json({
+    success: true,
+    data: newQuestion
+  });
 
-    res.status(400);
-    throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
-  }
-
-  try {
-    const existingQuestion = await CodingQuestion.findOne({
-      examId: examId.toString(),
-    });
-    console.log("Existing question check:", existingQuestion);
-
-    if (existingQuestion) {
-      res.status(400);
-      throw new Error(`A coding question already exists for exam: ${examId}`);
-    }
-
-    // FIX: Include testCases and image in the creation payload
-    const newQuestion = await CodingQuestion.create({
-      question,
-      description,
-      image,
-      testCases, 
-      examId: examId.toString(),
-      teacher: req.user._id,
-    });
-
-    console.log("Created new question successfully.");
-
-    res.status(201).json({
-      success: true,
-      data: newQuestion,
-    });
-  } catch (error) {
-    console.error("Error creating coding question:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      details: error.stack,
-    });
-  }
 });
 
-// @desc    Get all coding questions
-// @route   GET /api/coding/questions
-// @access  Private
+
+
+// ================= GET ALL CODING QUESTIONS =================
+// GET /api/coding/questions
 const getCodingQuestions = asyncHandler(async (req, res) => {
+
   const questions = await CodingQuestion.find()
-    .select("-submittedAnswer") 
     .populate("teacher", "name email");
 
   res.status(200).json({
     success: true,
     count: questions.length,
-    data: questions,
+    data: questions
   });
+
 });
 
-// @desc    Get a single coding question
-// @route   GET /api/coding/questions/:id
-// @access  Private
+
+
+// ================= GET SINGLE CODING QUESTION =================
+// GET /api/coding/questions/:id
 const getCodingQuestion = asyncHandler(async (req, res) => {
-  const question = await CodingQuestion.findById(req.params.id).populate(
-    "teacher",
-    "name email"
-  );
+
+  const question = await CodingQuestion.findById(req.params.id)
+    .populate("teacher", "name email");
 
   if (!question) {
     res.status(404);
@@ -125,45 +127,30 @@ const getCodingQuestion = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: question,
+    data: question
   });
+
 });
 
-// @desc    Get coding questions by exam ID
-// @route   GET /api/coding/questions/exam/:examId
-// @access  Private
+
+
+// ================= GET CODING QUESTIONS BY EXAM =================
+// GET /api/coding/questions/exam/:examId
 const getCodingQuestionsByExamId = asyncHandler(async (req, res) => {
+
   const { examId } = req.params;
-  console.log("Fetching question for examId:", examId);
 
-  if (!examId) {
-    res.status(400);
-    throw new Error("Exam ID is required");
-  }
+  const questions = await CodingQuestion.find({ examId });
 
-  try {
-    // FIX: Changed from `findOne` to `find`. 
-    // The frontend map function requires an Array of questions, not a single Object!
-    const questions = await CodingQuestion.find({
-      examId: examId.toString(),
-    });
-    
-    console.log(`Found ${questions.length} questions.`);
+  res.status(200).json({
+    success: true,
+    count: questions.length,
+    data: questions
+  });
 
-    // Even if it's empty, we return an empty array to prevent frontend crashes
-    res.status(200).json({
-      success: true,
-      data: questions, 
-    });
-  } catch (error) {
-    console.error("Error fetching coding question:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      details: error.stack,
-    });
-  }
 });
+
+
 
 export {
   submitCodingAnswer,

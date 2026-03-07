@@ -2,24 +2,80 @@ import mongoose from "mongoose";
 
 const resultSchema = mongoose.Schema(
   {
+    // ================= EXAM =================
     examId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Exam",
       required: true,
+      index: true,
     },
 
+    // ================= USER =================
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
+    // ================= MCQ ANSWERS =================
     answers: {
       type: Map,
       of: String,
+      default: {},
     },
 
+    // ================= CODING SUBMISSIONS =================
+    codingSubmissions: [
+      {
+        questionId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "CodingQuestion",
+          required: true,
+        },
+
+        code: {
+          type: String,
+          default: "",
+        },
+
+        language: {
+          type: String,
+          default: "javascript",
+        },
+
+        marks: {
+          type: Number,
+          default: 0,
+        },
+
+        status: {
+          type: String,
+          enum: ["pending", "passed", "failed"],
+          default: "pending",
+        },
+
+        executionTime: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
+
+    // ================= MCQ SCORE =================
     totalMarks: {
+      type: Number,
+      default: 0,
+    },
+
+    // ================= CODING SCORE =================
+    codingMarks: {
+      type: Number,
+      default: 0,
+    },
+
+    // ================= FINAL SCORE =================
+    totalScore: {
       type: Number,
       default: 0,
     },
@@ -29,21 +85,13 @@ const resultSchema = mongoose.Schema(
       default: 0,
     },
 
+    // ================= VISIBILITY =================
     showToStudent: {
       type: Boolean,
       default: false,
     },
 
-    codingMarks: {
-      type: Number,
-      default: 0,
-    },
-
-    totalScore: {
-      type: Number,
-      default: 0,
-    },
-
+    // ================= TEACHER FEEDBACK =================
     feedback: {
       type: String,
       default: "",
@@ -62,6 +110,12 @@ const resultSchema = mongoose.Schema(
     timestamps: true,
   }
 );
+
+
+// ================= PREVENT DUPLICATE RESULTS =================
+// One user can have only one result per exam
+resultSchema.index({ examId: 1, userId: 1 }, { unique: true });
+
 
 const Result = mongoose.model("Result", resultSchema);
 

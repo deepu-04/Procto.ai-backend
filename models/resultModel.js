@@ -2,10 +2,9 @@ import mongoose from "mongoose";
 
 const resultSchema = mongoose.Schema(
   {
-    
     examId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Exam", 
+      ref: "Exam",
       required: true,
     },
 
@@ -18,7 +17,6 @@ const resultSchema = mongoose.Schema(
     answers: {
       type: Map,
       of: String,
-      required: true,
     },
 
     totalMarks: {

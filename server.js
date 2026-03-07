@@ -41,6 +41,7 @@ const allowedOrigins = [
   "https://procto-ai-frontend.vercel.app",
   "https://procto-ai-frontend-git-main-deepu-04s-projects.vercel.app",
   "https://proctoai-frontend.vercel.app",
+  "https://proctoai.vercel.app",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 

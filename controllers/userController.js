@@ -1,7 +1,7 @@
 import asyncHandler from "express-async-handler";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
-import jwt from "jsonwebtoken"; // Added to generate the string for the frontend
+import jwt from "jsonwebtoken";
 
 // Helper to generate the token string for the JSON response
 const signToken = (userId) => {
@@ -39,14 +39,13 @@ export const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: token, // 🔥 FIXED: Frontend can now save this token
+      token: token,
     });
   } else {
     res.status(400);
     throw new Error("Invalid user data");
   }
 });
-
 
 export const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -69,10 +68,54 @@ export const authUser = asyncHandler(async (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
-    token: token, // 🔥 FIXED: Frontend can now save this token
+    token: token,
   });
 });
 
+// 🔥 NEW: Unified Google Auth Controller
+export const googleAuth = asyncHandler(async (req, res) => {
+  const { name, email, uid, role } = req.body;
+
+  let user = await User.findOne({ email });
+
+  if (user) {
+    // IF USER EXISTS -> Log them in
+    generateToken(res, user._id);
+    const token = signToken(user._id);
+    
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: token,
+    });
+  } else {
+    // IF USER DOES NOT EXIST -> Register them automatically
+    user = await User.create({
+      name,
+      email,
+      password: uid, // Use their Google UID as a secure placeholder password
+      role: role || 'student', 
+    });
+
+    if (user) {
+      generateToken(res, user._id);
+      const token = signToken(user._id);
+      
+      res.status(201).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: token,
+      });
+    } else {
+      res.status(400);
+      throw new Error("Invalid user data");
+    }
+  }
+});
 
 export const logoutUser = asyncHandler(async (req, res) => {
   res.cookie("jwt", "", {

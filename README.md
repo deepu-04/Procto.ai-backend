@@ -1,62 +1,72 @@
-# Procto.ai – AI Proctored Interview & Examination Platform (Frontend)
+# Procto.ai – AI Proctored Interview & Examination Platform (Backend)
 
 Procto.ai is an AI-powered platform designed to conduct **secure online interviews and examinations**.  
-The system analyzes **resumes and job descriptions**, generates **AI-based assessments**, and provides **automated proctoring** to ensure exam integrity.
+The backend system handles **resume analysis, AI-powered exam generation, authentication, data storage, and real-time proctoring services**.
 
-This repository contains the **frontend application** built using modern web technologies to deliver a fast, scalable, and user-friendly interface.
+This repository contains the **backend services and APIs** responsible for powering the Procto.ai platform.
 
 ---
 
-# 📌 Project Overview
+# Project Overview
 
-Procto.ai helps organizations and educational institutions automate **technical hiring and assessments**.
+The backend manages the core functionality of the Procto.ai system including:
 
-Main capabilities include:
-
-- Resume and Job Description analysis  
-- AI-generated interview questions  
-- Skill-based exam generation  
-- Real-time AI proctoring during exams  
-- Student dashboard  
-- Admin / Teacher dashboard  
-- Exam analytics and reports  
-- Secure authentication system  
+- Resume and Job Description processing
+- AI-based interview and exam question generation
+- Secure user authentication
+- Exam session management
+- Real-time proctoring data handling
+- Student performance tracking
+- Admin and teacher management APIs
 
 ---
 
 # Technology Stack
 
-The frontend application is built using the following technologies:
+The backend application is built using the following technologies:
 
-- React.js
-- Material UI (MUI)
-- React Router
-- Firebase Authentication
-- Firebase Firestore
-- Axios
-- Framer Motion
-- Socket.io Client
+- Node.js
+- Express.js
+- Firebase Admin SDK
+- Firestore Database
+- Multer (File Upload)
+- JWT Authentication
+- Socket.io
+- OpenAI API (for AI question generation)
+- CORS
+- Dotenv
+
+---
+
+# Backend Architecture
+
+The backend follows a **RESTful API architecture** to communicate with the frontend.
+
+Key modules include:
+
+- Authentication APIs
+- Resume Processing
+- AI Question Generation
+- Exam Management
+- Proctoring Monitoring
+- Student Data Management
 
 ---
 
 # Project Structure
 
 ```
-src
+backend
 │
-├── assets
-├── components
-├── layouts
+├── controllers
 ├── routes
-├── views
-│   ├── admin
-│   ├── student
-│   └── teacher
-│
-├── firebase
+├── middleware
+├── services
 ├── utils
-├── App.jsx
-└── main.jsx
+├── firebase
+│
+├── server.js
+└── package.json
 ```
 
 ---
@@ -66,14 +76,13 @@ src
 Clone the repository:
 
 ```bash
-git clone https://github.com/deepu-04/procto-ai-frontend.git
-
+git clone https://github.com/deepu-04/Procto.ai-backend.git
 ```
 
-Navigate into the project directory:
+Navigate to the project directory:
 
 ```bash
-cd procto-ai-frontend
+cd Procto.ai-backend
 ```
 
 Install dependencies:
@@ -84,81 +93,91 @@ npm install
 
 ---
 
-# Running the Project
+# Running the Backend Server
 
 Start the development server:
 
 ```bash
-npm run dev
+npm start
 ```
 
-The application will run at:
-
-```
-http://localhost:5173
-```
-
----
-
-# Production Build
-
-Build the project for production:
+or
 
 ```bash
-npm run build
+node server.js
 ```
 
-Preview the production build:
+The backend server will run on:
 
-```bash
-npm run preview
+```
+http://localhost:5000
 ```
 
 ---
 
 # Environment Variables
 
-Create a `.env` file in the root directory and add the following:
+Create a `.env` file in the root directory and add the following variables:
 
 ```
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
+PORT=5000
+
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_CLIENT_EMAIL=
+
+OPENAI_API_KEY=
+JWT_SECRET=
 ```
+
+---
+
+# API Features
+
+The backend provides APIs for:
+
+- User authentication
+- Resume upload and analysis
+- Job description analysis
+- AI-generated interview questions
+- Exam session management
+- Proctoring event monitoring
+- Student performance reports
 
 ---
 
 # Deployment
 
-The frontend can be deployed easily on:
+The backend can be deployed on:
 
-- ▲ Vercel  
-- Netlify  
-- Firebase Hosting  
+- Render
+- Railway
+- AWS
+- DigitalOcean
+- Vercel Serverless (optional)
 
-Recommended deployment platform: **Vercel**
+Recommended platform: **Render**
 
 ---
 
 # Future Improvements
 
-Planned improvements for the platform:
+Planned backend improvements include:
 
-- AI cheating detection
-- Voice-based interview analysis
-- Advanced proctoring analytics
-- Automated skill scoring
-- AI candidate feedback system
+- AI cheating detection models
+- Voice and facial analysis integration
+- Advanced analytics dashboard APIs
+- Automated interview evaluation
+- AI candidate performance scoring
+
+---
 
 # Contributing
 
 Contributions are welcome.
 
 1. Fork the repository  
-2. Create a feature branch  
+2. Create a new feature branch  
 3. Commit your changes  
 4. Submit a pull request  
 
@@ -168,5 +187,9 @@ Contributions are welcome.
 
 This project is licensed under the **MIT License**.
 
-backend Link : https://github.com/deepu-04/Procto.ai-backend.git 
+---
 
+# Frontend Repository
+
+Frontend Link :  
+https://github.com/deepu-04/procto-ai-frontend

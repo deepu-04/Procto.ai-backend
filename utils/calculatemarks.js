@@ -10,7 +10,7 @@ const calculateMarks = (questions, answers) => {
 
     const correctOption = question.options.find((opt) => opt.isCorrect);
 
-    if (correctOption?.optionText === userAnswer.selectedOption) {
+    if (correctOption && correctOption.optionText === userAnswer.selectedOption) {
       totalMarks += question.ansmarks || 1;
     }
   });

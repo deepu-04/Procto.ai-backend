@@ -3,7 +3,7 @@ import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
 import jwt from "jsonwebtoken";
 
-// Helper to generate the token string for the JSON response
+// Helper to generate the token string for the frontend JSON response
 const signToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "30d",
@@ -38,7 +38,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role, // Frontend uses this to route to the correct dashboard
       token: token,
     });
   } else {
@@ -67,19 +67,19 @@ export const authUser = asyncHandler(async (req, res) => {
     _id: user._id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role: user.role, // Frontend uses this to route to the correct dashboard
     token: token,
   });
 });
 
-// 🔥 NEW: Unified Google Auth Controller
+// 🔥 Unified Google Auth Controller
 export const googleAuth = asyncHandler(async (req, res) => {
   const { name, email, uid, role } = req.body;
 
   let user = await User.findOne({ email });
 
   if (user) {
-    // IF USER EXISTS -> Log them in
+    // IF USER EXISTS -> Log them in using their ORIGINAL role from the database
     generateToken(res, user._id);
     const token = signToken(user._id);
     
@@ -87,16 +87,16 @@ export const googleAuth = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role, // Guarantees they go to their original dashboard
       token: token,
     });
   } else {
-    // IF USER DOES NOT EXIST -> Register them automatically
+    // IF USER DOES NOT EXIST -> Register them automatically with the selected role
     user = await User.create({
       name,
       email,
       password: uid, // Use their Google UID as a secure placeholder password
-      role: role || 'student', 
+      role: role || 'student', // Defaults to student if no role is provided
     });
 
     if (user) {
@@ -107,7 +107,7 @@ export const googleAuth = asyncHandler(async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role, // Routes new user to their chosen dashboard
         token: token,
       });
     } else {

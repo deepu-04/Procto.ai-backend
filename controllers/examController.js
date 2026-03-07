@@ -9,7 +9,8 @@ import CheatingLog from "../models/cheatingLogModel.js";
  * @access  Private
  */
 const getExams = asyncHandler(async (req, res) => {
-  const exams = await Exam.find();
+  // Added sorting so the newest exams appear at the top of the list
+  const exams = await Exam.find().sort({ createdAt: -1 });
   res.status(200).json(exams);
 });
 
@@ -37,7 +38,8 @@ const createExam = asyncHandler(async (req, res) => {
 
   const createdExam = await exam.save();
 
-  if (req.ipRisk && req.ipRisk.risk >= 40) {
+  // Safety check to ensure req.user exists before logging
+  if (req.ipRisk && req.ipRisk.risk >= 40 && req.user) {
     await CheatingLog.create({
       examId: createdExam.examId,
       userId: req.user._id,
@@ -49,21 +51,22 @@ const createExam = asyncHandler(async (req, res) => {
     });
   }
 
-  res.status(201).json({
-    success: true,
-    exam: createdExam,
-  });
+  // FIX: Returning the raw document so the frontend can access `exam.examId` directly.
+  // This ensures the subsequent POST request to /api/coding/question receives the correct ID.
+  res.status(201).json(createdExam);
 });
 
 /**
- * @desc    Delete exam by examId (UUID)
+ * @desc    Delete exam by ID
  * @route   DELETE /api/exams/:examId
  * @access  Private
  */
 const deleteExamById = asyncHandler(async (req, res) => {
   const { examId } = req.params;
 
-  const exam = await Exam.findOneAndDelete({ examId });
+  // FIX: Frontend DeleteIcon explicitly passes the MongoDB `_id`.
+  // We must use findByIdAndDelete to match the Mongo ObjectId, not the UUID.
+  const exam = await Exam.findByIdAndDelete(examId);
 
   if (!exam) {
     res.status(404);

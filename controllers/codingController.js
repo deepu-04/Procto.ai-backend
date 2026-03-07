@@ -12,14 +12,12 @@ const submitCodingAnswer = asyncHandler(async (req, res) => {
     throw new Error("Please provide all required fields");
   }
 
-  
   const question = await CodingQuestion.findById(questionId);
   if (!question) {
     res.status(404);
     throw new Error("Question not found");
   }
 
-  
   question.submittedAnswer = {
     code,
     language,
@@ -27,7 +25,6 @@ const submitCodingAnswer = asyncHandler(async (req, res) => {
     executionTime: 0, 
   };
 
-  
   const updatedQuestion = await question.save();
 
   res.status(200).json({
@@ -40,11 +37,14 @@ const submitCodingAnswer = asyncHandler(async (req, res) => {
 // @route   POST /api/coding/question
 // @access  Private (Teacher)
 const createCodingQuestion = asyncHandler(async (req, res) => {
-  const { question, description, examId } = req.body;
+  // FIX: Added 'image' and 'testCases' so they are actually saved to the database
+  const { question, description, image, testCases, examId } = req.body;
+  
   console.log("Received coding question data:", {
     question,
     description,
     examId,
+    testCasesCount: testCases ? testCases.length : 0
   });
 
   if (!question || !description || !examId) {
@@ -58,7 +58,6 @@ const createCodingQuestion = asyncHandler(async (req, res) => {
   }
 
   try {
-    
     const existingQuestion = await CodingQuestion.findOne({
       examId: examId.toString(),
     });
@@ -69,14 +68,17 @@ const createCodingQuestion = asyncHandler(async (req, res) => {
       throw new Error(`A coding question already exists for exam: ${examId}`);
     }
 
+    // FIX: Include testCases and image in the creation payload
     const newQuestion = await CodingQuestion.create({
       question,
       description,
+      image,
+      testCases, 
       examId: examId.toString(),
       teacher: req.user._id,
     });
 
-    console.log("Created new question:", newQuestion);
+    console.log("Created new question successfully.");
 
     res.status(201).json({
       success: true,
@@ -140,19 +142,18 @@ const getCodingQuestionsByExamId = asyncHandler(async (req, res) => {
   }
 
   try {
-    const question = await CodingQuestion.findOne({
+    // FIX: Changed from `findOne` to `find`. 
+    // The frontend map function requires an Array of questions, not a single Object!
+    const questions = await CodingQuestion.find({
       examId: examId.toString(),
     });
-    console.log("Found question:", question);
+    
+    console.log(`Found ${questions.length} questions.`);
 
-    if (!question) {
-      res.status(404);
-      throw new Error(`No coding question found for exam: ${examId}`);
-    }
-
+    // Even if it's empty, we return an empty array to prevent frontend crashes
     res.status(200).json({
       success: true,
-      data: question,
+      data: questions, 
     });
   } catch (error) {
     console.error("Error fetching coding question:", error);

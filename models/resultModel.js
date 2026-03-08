@@ -4,8 +4,7 @@ const resultSchema = mongoose.Schema(
   {
     // ================= EXAM =================
     examId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Exam",
+      type: String, // ✅ FIXED (UUID support)
       required: true,
       index: true,
     },
@@ -111,11 +110,8 @@ const resultSchema = mongoose.Schema(
   }
 );
 
-
 // ================= PREVENT DUPLICATE RESULTS =================
-// One user can have only one result per exam
 resultSchema.index({ examId: 1, userId: 1 }, { unique: true });
-
 
 const Result = mongoose.model("Result", resultSchema);
 

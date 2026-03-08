@@ -1,5 +1,4 @@
 import asyncHandler from "express-async-handler";
-import mongoose from "mongoose";
 import Question from "../models/quesModel.js";
 import Result from "../models/resultModel.js";
 import calculateMarks from "../utils/calculateMarks.js";
@@ -9,28 +8,33 @@ const submitExam = asyncHandler(async (req, res) => {
   const { examId, answers = {}, codingSubmissions = [] } = req.body;
 
   // ================= VALIDATE EXAM ID =================
-  if (!examId) {
-    return res.status(400).json({ message: "Exam ID is required" });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(examId)) {
-    return res.status(400).json({ message: "Invalid exam ID format" });
+  if (!examId || typeof examId !== "string") {
+    return res.status(400).json({
+      message: "Valid exam ID is required"
+    });
   }
 
   const userId = req.user._id;
 
   // ================= PREVENT DUPLICATE SUBMISSION =================
-  const existingResult = await Result.findOne({ examId, userId });
+  const existingResult = await Result.findOne({
+    examId,
+    userId
+  });
 
   if (existingResult) {
-    return res.status(400).json({ message: "You already submitted this exam" });
+    return res.status(400).json({
+      message: "You already submitted this exam"
+    });
   }
 
   // ================= FETCH QUESTIONS =================
   const questions = await Question.find({ examId });
 
-  if (!questions || questions.length === 0) {
-    return res.status(404).json({ message: "No questions found for this exam" });
+  if (!questions.length) {
+    return res.status(404).json({
+      message: "No questions found for this exam"
+    });
   }
 
   // ================= MCQ MARK CALCULATION =================
@@ -44,13 +48,14 @@ const submitExam = asyncHandler(async (req, res) => {
 
   } catch (err) {
 
-    console.error("calculateMarks error:", err);
+    console.error("MCQ calculation error:", err);
     mcqMarks = 0;
 
   }
 
   // ================= CODING MARKS =================
   let codingMarks = 0;
+
   const safeCodingSubmissions = [];
 
   if (Array.isArray(codingSubmissions)) {
@@ -58,13 +63,14 @@ const submitExam = asyncHandler(async (req, res) => {
     codingSubmissions.forEach((submission) => {
 
       const marks = submission?.marks || 0;
+
       codingMarks += marks;
 
       safeCodingSubmissions.push({
         questionId: submission?.questionId || null,
         code: submission?.code || "",
         language: submission?.language || "javascript",
-        marks: marks,
+        marks
       });
 
     });
@@ -74,7 +80,6 @@ const submitExam = asyncHandler(async (req, res) => {
   // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
 
-  // ================= PERCENTAGE =================
   const totalQuestions = questions.length;
 
   const percentage =
@@ -91,14 +96,14 @@ const submitExam = asyncHandler(async (req, res) => {
     totalMarks: mcqMarks,
     codingMarks,
     totalScore,
-    percentage,
+    percentage
   });
 
   // ================= RESPONSE =================
   res.status(201).json({
     success: true,
     message: "Exam submitted successfully",
-    data: result,
+    data: result
   });
 
 });

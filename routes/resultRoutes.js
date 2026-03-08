@@ -6,14 +6,12 @@ import {
   getAllResults,
   getResultsByExam,
   toggleVisibility,
-  saveResult,
+  saveResult
 } from "../controllers/resultController.js";
 
 import { submitExam } from "../controllers/submitExamController.js";
 
 const router = express.Router();
-
-// ================= RESULT ROUTES =================
 
 // Save result manually
 router.post("/", protect, saveResult);
@@ -21,7 +19,7 @@ router.post("/", protect, saveResult);
 // Student results
 router.get("/user", protect, getUserResults);
 
-// Admin/teacher view all results
+// Admin results
 router.get("/all", protect, getAllResults);
 
 // Results by exam

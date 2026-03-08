@@ -22,19 +22,13 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 const app = express();
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY is NOT loaded");
-} else {
-  console.log("OPENAI_API_KEY loaded");
-}
-
 // connect database
 connectDB();
 
 // create http server
 const httpServer = createServer(app);
 
-// ✅ allowed frontend domains
+// allowed frontend domains
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
@@ -45,30 +39,20 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// ✅ CORS middleware - FIXED
+// CORS
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    credentials: true
   })
 );
-
-// ✅ socket.io config
-const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// routes
+// ================= ROUTES =================
+
 app.use("/api/users", userRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/coding", codingRoutes);
@@ -79,57 +63,41 @@ app.use("/api/cheatinglogs", cheatingLogsRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/user", analyticsRoutes);
 
-// health route
+// ================= HEALTH CHECK =================
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
-    message: "Procto.ai backend running",
+    message: "Procto.ai backend running"
   });
 });
 
-// socket connection
+// ================= SOCKET =================
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"]
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
-
-  socket.on("join-interview", (data) => {
-    const { roomId, role, email } = data;
-
-    socket.join(roomId);
-
-    console.log(role + " (" + email + ") joined room: " + roomId);
-
-    socket.to(roomId).emit("user-connected", {
-      socketId: socket.id,
-      role,
-      email,
-    });
-  });
-
-  socket.on("signal", (data) => {
-    const { roomId, signalData } = data;
-    socket.to(roomId).emit("signal", signalData);
-  });
-
-  socket.on("message", (data) => {
-    const { roomId, message, sender } = data;
-    io.to(roomId).emit("message", {
-      message,
-      sender,
-    });
-  });
 
   socket.on("disconnect", () => {
     console.log("User Disconnected:", socket.id);
   });
 });
 
-// error middleware
+// ================= ERROR MIDDLEWARE =================
+
 app.use(notFound);
 app.use(errorHandler);
 
-// start server
+// ================= START SERVER =================
+
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });

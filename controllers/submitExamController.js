@@ -5,7 +5,7 @@ import calculateMarks from "../utils/calculateMarks.js";
 
 const submitExam = asyncHandler(async (req, res) => {
 
-  const { examId, answers, codingSubmissions } = req.body;
+  const { examId, answers = {}, codingSubmissions = [] } = req.body;
 
   if (!examId) {
     res.status(400);
@@ -14,7 +14,7 @@ const submitExam = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;
 
-  // prevent duplicate submission
+  // ================= PREVENT DUPLICATE SUBMISSION =================
   const existingResult = await Result.findOne({ examId, userId });
 
   if (existingResult) {
@@ -22,31 +22,60 @@ const submitExam = asyncHandler(async (req, res) => {
     throw new Error("You already submitted this exam");
   }
 
-  // fetch questions
+  // ================= FETCH QUESTIONS =================
   const questions = await Question.find({ examId });
 
-  // calculate mcq marks
-  const mcqMarks = calculateMarks(questions, answers);
+  if (!questions || questions.length === 0) {
+    res.status(404);
+    throw new Error("No questions found for this exam");
+  }
 
-  // coding marks
+  // ================= CALCULATE MCQ MARKS =================
+  let mcqMarks = 0;
+
+  try {
+    mcqMarks = calculateMarks(questions, answers || {});
+  } catch (error) {
+    console.error("MCQ calculation error:", error);
+    mcqMarks = 0;
+  }
+
+  // ================= CALCULATE CODING MARKS =================
   let codingMarks = 0;
 
-  if (Array.isArray(codingSubmissions)) {
+  if (Array.isArray(codingSubmissions) && codingSubmissions.length > 0) {
     codingSubmissions.forEach((submission) => {
-      codingMarks += submission.marks || 0;
+      codingMarks += submission?.marks || 0;
     });
   }
 
+  // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
 
+  // ================= TOTAL POSSIBLE MARKS =================
+  const totalMcqMarks = questions.reduce(
+    (sum, q) => sum + (q.ansmarks || 1),
+    0
+  );
+
+  const totalPossibleMarks = totalMcqMarks + codingMarks;
+
+  // ================= PERCENTAGE =================
+  const percentage =
+    totalPossibleMarks > 0
+      ? (totalScore / totalPossibleMarks) * 100
+      : 0;
+
+  // ================= SAVE RESULT =================
   const result = await Result.create({
     examId,
     userId,
-    answers,
-    codingSubmissions,
+    answers: answers || {},
+    codingSubmissions: codingSubmissions || [],
     totalMarks: mcqMarks,
     codingMarks,
-    totalScore
+    totalScore,
+    percentage
   });
 
   res.status(201).json({

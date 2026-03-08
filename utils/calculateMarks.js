@@ -1,21 +1,25 @@
-const calculateMarks = (questions, answers) => {
-  let totalMarks = 0;
+const calculateMarks = (questions = [], answers = {}) => {
 
-  questions.forEach((question) => {
-    const userAnswer = answers?.find(
-      (ans) => ans.questionId === question._id.toString()
-    );
+  let marks = 0;
+
+  questions.forEach((q) => {
+
+    const correctAnswer = q.correctAnswer;
+
+    const userAnswer = answers[q._id];
 
     if (!userAnswer) return;
 
-    const correctOption = question.options.find((opt) => opt.isCorrect);
+    if (userAnswer === correctAnswer) {
 
-    if (correctOption && correctOption.optionText === userAnswer.selectedOption) {
-      totalMarks += question.ansmarks || 1;
+      marks += q.ansmarks || 1;
+
     }
+
   });
 
-  return totalMarks;
+  return marks;
+
 };
 
 export default calculateMarks;

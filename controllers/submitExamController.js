@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Question from "../models/quesModel.js";
 import Result from "../models/resultModel.js";
 import calculateMarks from "../utils/calculateMarks.js";
@@ -7,9 +8,13 @@ const submitExam = asyncHandler(async (req, res) => {
 
   const { examId, answers = {}, codingSubmissions = [] } = req.body;
 
+  // ================= VALIDATE EXAM ID =================
   if (!examId) {
-    res.status(400);
-    throw new Error("Exam ID is required");
+    return res.status(400).json({ message: "Exam ID is required" });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(examId)) {
+    return res.status(400).json({ message: "Invalid exam ID format" });
   }
 
   const userId = req.user._id;
@@ -18,16 +23,14 @@ const submitExam = asyncHandler(async (req, res) => {
   const existingResult = await Result.findOne({ examId, userId });
 
   if (existingResult) {
-    res.status(400);
-    throw new Error("You already submitted this exam");
+    return res.status(400).json({ message: "You already submitted this exam" });
   }
 
   // ================= FETCH QUESTIONS =================
   const questions = await Question.find({ examId });
 
   if (!questions || questions.length === 0) {
-    res.status(404);
-    throw new Error("No questions found for this exam");
+    return res.status(404).json({ message: "No questions found for this exam" });
   }
 
   // ================= MCQ MARK CALCULATION =================
@@ -41,7 +44,7 @@ const submitExam = asyncHandler(async (req, res) => {
 
   } catch (err) {
 
-    console.error("calculateMarks crash:", err);
+    console.error("calculateMarks error:", err);
     mcqMarks = 0;
 
   }
@@ -71,7 +74,7 @@ const submitExam = asyncHandler(async (req, res) => {
   // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
 
-  // ================= TOTAL POSSIBLE MARKS =================
+  // ================= PERCENTAGE =================
   const totalQuestions = questions.length;
 
   const percentage =

@@ -10,6 +10,7 @@ import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
+// ================= ROUTES =================
 import examRoutes from "./routes/examRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import codingRoutes from "./routes/codingRoutes.js";
@@ -22,13 +23,13 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 const app = express();
 
-// connect database
+// ================= DATABASE =================
 connectDB();
 
-// create http server
+// ================= HTTP SERVER =================
 const httpServer = createServer(app);
 
-// allowed frontend domains
+// ================= CORS CONFIG =================
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
@@ -39,19 +40,25 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// CORS
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy: Origin not allowed"));
+      }
+    },
     credentials: true
   })
 );
 
-app.use(express.json());
+// ================= MIDDLEWARE =================
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ================= ROUTES =================
+// ================= API ROUTES =================
 
 app.use("/api/users", userRoutes);
 app.use("/api/exams", examRoutes);
@@ -66,30 +73,34 @@ app.use("/api/user", analyticsRoutes);
 // ================= HEALTH CHECK =================
 
 app.get("/api/health", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: "OK",
-    message: "Procto.ai backend running"
+    service: "Procto.ai Backend",
+    timestamp: new Date().toISOString()
   });
 });
 
-// ================= SOCKET =================
+// ================= SOCKET.IO =================
 
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 io.on("connection", (socket) => {
-  console.log("User Connected:", socket.id);
+
+  console.log("Socket Connected:", socket.id);
 
   socket.on("disconnect", () => {
-    console.log("User Disconnected:", socket.id);
+    console.log("Socket Disconnected:", socket.id);
   });
+
 });
 
-// ================= ERROR MIDDLEWARE =================
+// ================= ERROR HANDLERS =================
 
 app.use(notFound);
 app.use(errorHandler);
@@ -99,5 +110,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Procto.ai Backend running on port ${PORT}`);
 });

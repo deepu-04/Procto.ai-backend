@@ -14,7 +14,7 @@ const submitExam = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;
 
-  // Prevent duplicate submission
+  // ================= PREVENT DUPLICATE SUBMISSION =================
   const existingResult = await Result.findOne({ examId, userId });
 
   if (existingResult) {
@@ -22,7 +22,7 @@ const submitExam = asyncHandler(async (req, res) => {
     throw new Error("You already submitted this exam");
   }
 
-  // Fetch questions
+  // ================= FETCH QUESTIONS =================
   const questions = await Question.find({ examId });
 
   if (!questions || questions.length === 0) {
@@ -30,7 +30,7 @@ const submitExam = asyncHandler(async (req, res) => {
     throw new Error("No questions found for this exam");
   }
 
-  // ================= SAFE MCQ MARK CALCULATION =================
+  // ================= MCQ MARK CALCULATION =================
   let mcqMarks = 0;
 
   try {
@@ -42,13 +42,14 @@ const submitExam = asyncHandler(async (req, res) => {
   } catch (err) {
 
     console.error("calculateMarks crash:", err);
-
     mcqMarks = 0;
 
   }
 
-  // ================= SAFE CODING MARKS =================
+  // ================= CODING MARKS =================
   let codingMarks = 0;
+
+  const safeCodingSubmissions = [];
 
   if (Array.isArray(codingSubmissions)) {
 
@@ -56,27 +57,45 @@ const submitExam = asyncHandler(async (req, res) => {
 
       codingMarks += submission?.marks || 0;
 
+      safeCodingSubmissions.push({
+        questionId: submission?.questionId,
+        code: submission?.code || "",
+        language: submission?.language || "javascript",
+        marks: submission?.marks || 0,
+      });
+
     });
 
   }
 
+  // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
+
+  // ================= TOTAL POSSIBLE MARKS =================
+  const totalQuestions = questions.length;
+
+  const percentage =
+    totalQuestions > 0
+      ? Number(((totalScore / totalQuestions) * 100).toFixed(2))
+      : 0;
 
   // ================= SAVE RESULT =================
   const result = await Result.create({
     examId,
     userId,
     answers,
-    codingSubmissions,
+    codingSubmissions: safeCodingSubmissions,
     totalMarks: mcqMarks,
     codingMarks,
     totalScore,
+    percentage,
   });
 
+  // ================= RESPONSE =================
   res.status(201).json({
     success: true,
     message: "Exam submitted successfully",
-    data: result,
+    result,
   });
 
 });

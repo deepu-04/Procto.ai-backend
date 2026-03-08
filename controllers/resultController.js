@@ -1,10 +1,12 @@
 import asyncHandler from "express-async-handler";
 import Result from "../models/resultModel.js";
+import Exam from "../models/examModel.js";
 
 /*
-SAVE RESULT AFTER EXAM SUBMISSION
+SAVE RESULT
 */
 const saveResult = asyncHandler(async (req, res) => {
+
   const { examId, answers, totalMarks, percentage } = req.body;
 
   if (!examId) {
@@ -12,7 +14,7 @@ const saveResult = asyncHandler(async (req, res) => {
     throw new Error("ExamId required");
   }
 
-  const result = new Result({
+  const result = await Result.create({
     examId,
     userId: req.user._id,
     answers,
@@ -20,53 +22,75 @@ const saveResult = asyncHandler(async (req, res) => {
     percentage,
   });
 
-  const savedResult = await result.save();
-
-  res.status(201).json(savedResult);
+  res.status(201).json(result);
 });
 
+
 /*
-GET STUDENT RESULTS
+GET USER RESULTS
 */
 const getUserResults = asyncHandler(async (req, res) => {
+
   const results = await Result.find({
     userId: req.user._id,
     showToStudent: true,
-  })
-    .populate("examId", "examName")
-    .populate("userId", "name email");
+  }).populate("userId", "name email");
 
-  res.status(200).json(results);
+  const exams = await Exam.find();
+
+  const merged = results.map((r) => ({
+    ...r.toObject(),
+    examId: exams.find((e) => e.examId === r.examId),
+  }));
+
+  res.json(merged);
 });
+
 
 /*
 GET ALL RESULTS (TEACHER)
 */
 const getAllResults = asyncHandler(async (req, res) => {
+
   const results = await Result.find()
-    .populate("examId", "examName")
     .populate("userId", "name email");
 
-  res.status(200).json(results);
+  const exams = await Exam.find();
+
+  const merged = results.map((r) => ({
+    ...r.toObject(),
+    examId: exams.find((e) => e.examId === r.examId),
+  }));
+
+  res.json(merged);
 });
+
 
 /*
 GET RESULTS BY EXAM
 */
 const getResultsByExam = asyncHandler(async (req, res) => {
+
   const results = await Result.find({
     examId: req.params.examId,
-  })
-    .populate("examId", "examName")
-    .populate("userId", "name email");
+  }).populate("userId", "name email");
 
-  res.status(200).json(results);
+  const exams = await Exam.find();
+
+  const merged = results.map((r) => ({
+    ...r.toObject(),
+    examId: exams.find((e) => e.examId === r.examId),
+  }));
+
+  res.json(merged);
 });
+
 
 /*
 TOGGLE VISIBILITY
 */
 const toggleVisibility = asyncHandler(async (req, res) => {
+
   const result = await Result.findById(req.params.resultId);
 
   if (!result) {
@@ -79,6 +103,7 @@ const toggleVisibility = asyncHandler(async (req, res) => {
   await result.save();
 
   res.json({ message: "Visibility updated successfully" });
+
 });
 
 export {

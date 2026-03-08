@@ -28,13 +28,22 @@ const createExam = asyncHandler(async (req, res) => {
     throw new Error("Please provide all required fields");
   }
 
-const now = new Date();
+  const now = new Date();
 
-let live = new Date(liveDate);
+  // convert incoming dates
+  let live = new Date(liveDate);
+  let dead = new Date(deadDate);
 
-if (live <= now) {
-  live = now;
-}
+  // if teacher selects current time → make exam live immediately
+  if (live <= now) {
+    live = now;
+  }
+
+  // ensure deadline is after live time
+  if (dead <= live) {
+    res.status(400);
+    throw new Error("Deadline must be after live date");
+  }
 
   const exam = await Exam.create({
     examName,
@@ -68,6 +77,7 @@ const deleteExamById = asyncHandler(async (req, res) => {
   });
 
 });
+
 
 export {
   getExams,

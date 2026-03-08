@@ -87,5 +87,5 @@ export {
   getUserResults,
   getAllResults,
   getResultsByExam,
-  toggleVisibility,
+  toggleVisibility
 };

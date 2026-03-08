@@ -2,7 +2,6 @@ import asyncHandler from "express-async-handler";
 import Exam from "../models/examModel.js";
 
 // ================= GET ALL EXAMS =================
-// GET /api/exams
 const getExams = asyncHandler(async (req, res) => {
 
   const exams = await Exam.find().sort({ createdAt: -1 });
@@ -13,8 +12,6 @@ const getExams = asyncHandler(async (req, res) => {
 
 
 // ================= CREATE EXAM =================
-// POST /api/exams
-
 const createExam = asyncHandler(async (req, res) => {
 
   const {
@@ -31,12 +28,23 @@ const createExam = asyncHandler(async (req, res) => {
     throw new Error("Please provide all required fields");
   }
 
+  const now = new Date();
+
+  let live = new Date(liveDate);
+  const dead = new Date(deadDate);
+
+  // 🔥 IMPORTANT FIX
+  // If teacher selects current time or past → make exam live immediately
+  if (live <= now) {
+    live = now;
+  }
+
   const exam = await Exam.create({
     examName,
     totalQuestions,
     duration,
-    liveDate,
-    deadDate,
+    liveDate: live,
+    deadDate: dead,
     bannerImage,
     createdBy: req.user._id,
   });
@@ -47,8 +55,6 @@ const createExam = asyncHandler(async (req, res) => {
 
 
 // ================= DELETE EXAM =================
-// DELETE /api/exams/:examId
-
 const deleteExamById = asyncHandler(async (req, res) => {
 
   const exam = await Exam.findOne({ examId: req.params.examId });

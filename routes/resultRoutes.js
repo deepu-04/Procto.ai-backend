@@ -9,7 +9,7 @@ import {
   saveResult
 } from "../controllers/resultController.js";
 
-import { submitExam } from "../controllers/submitExamController.js";
+import submitExam from "../controllers/submitExamController.js";
 
 const router = express.Router();
 

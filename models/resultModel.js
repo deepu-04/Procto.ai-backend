@@ -57,7 +57,7 @@ const resultSchema = mongoose.Schema(
 
     showToStudent: {
       type: Boolean,
-      default: false,
+      default: true,
     },
   },
   {

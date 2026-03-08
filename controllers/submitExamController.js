@@ -77,10 +77,15 @@ const submitExam = asyncHandler(async (req, res) => {
   // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
 
-  const percentage =
-    questions.length > 0
-      ? Number(((totalScore / questions.length) * 100).toFixed(2))
-      : 0;
+ const totalMarksPossible = questions.reduce(
+  (sum, q) => sum + (q.ansmarks || 1),
+  0
+);
+
+const percentage =
+  totalMarksPossible > 0
+    ? Number(((totalScore / totalMarksPossible) * 100).toFixed(2))
+    : 0;
 
   // ================= SAVE RESULT =================
   const result = await Result.create({

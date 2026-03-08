@@ -17,10 +17,7 @@ const submitExam = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   // ================= PREVENT DUPLICATE SUBMISSION =================
-  const existingResult = await Result.findOne({
-    examId,
-    userId
-  });
+  const existingResult = await Result.findOne({ examId, userId });
 
   if (existingResult) {
     return res.status(400).json({
@@ -31,13 +28,13 @@ const submitExam = asyncHandler(async (req, res) => {
   // ================= FETCH QUESTIONS =================
   const questions = await Question.find({ examId });
 
-  if (!questions.length) {
+  if (!questions || questions.length === 0) {
     return res.status(404).json({
       message: "No questions found for this exam"
     });
   }
 
-  // ================= MCQ MARK CALCULATION =================
+  // ================= MCQ MARKS =================
   let mcqMarks = 0;
 
   try {
@@ -80,11 +77,9 @@ const submitExam = asyncHandler(async (req, res) => {
   // ================= TOTAL SCORE =================
   const totalScore = mcqMarks + codingMarks;
 
-  const totalQuestions = questions.length;
-
   const percentage =
-    totalQuestions > 0
-      ? Number(((totalScore / totalQuestions) * 100).toFixed(2))
+    questions.length > 0
+      ? Number(((totalScore / questions.length) * 100).toFixed(2))
       : 0;
 
   // ================= SAVE RESULT =================
@@ -108,4 +103,4 @@ const submitExam = asyncHandler(async (req, res) => {
 
 });
 
-export { submitExam };
+export default submitExam;

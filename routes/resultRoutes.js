@@ -13,22 +13,22 @@ import submitExam from "../controllers/submitExamController.js";
 
 const router = express.Router();
 
-// Save result manually
+// save result manually
 router.post("/", protect, saveResult);
 
-// Submit exam (IMPORTANT)
+// submit exam
 router.post("/submit", protect, submitExam);
 
-// Student results
+// student results
 router.get("/user", protect, getUserResults);
 
-// Admin results
+// admin results
 router.get("/all", protect, getAllResults);
 
-// Results by exam
+// results by exam
 router.get("/exam/:examId", protect, getResultsByExam);
 
-// Toggle result visibility
+// toggle visibility
 router.put("/:resultId/toggle-visibility", protect, toggleVisibility);
 
 export default router;

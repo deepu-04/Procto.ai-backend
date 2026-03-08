@@ -48,20 +48,20 @@ const submitExam = asyncHandler(async (req, res) => {
 
   // ================= CODING MARKS =================
   let codingMarks = 0;
-
   const safeCodingSubmissions = [];
 
   if (Array.isArray(codingSubmissions)) {
 
     codingSubmissions.forEach((submission) => {
 
-      codingMarks += submission?.marks || 0;
+      const marks = submission?.marks || 0;
+      codingMarks += marks;
 
       safeCodingSubmissions.push({
-        questionId: submission?.questionId,
+        questionId: submission?.questionId || null,
         code: submission?.code || "",
         language: submission?.language || "javascript",
-        marks: submission?.marks || 0,
+        marks: marks,
       });
 
     });
@@ -95,7 +95,7 @@ const submitExam = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     message: "Exam submitted successfully",
-    result,
+    data: result,
   });
 
 });

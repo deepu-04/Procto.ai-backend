@@ -28,16 +28,13 @@ const createExam = asyncHandler(async (req, res) => {
     throw new Error("Please provide all required fields");
   }
 
-  const now = new Date();
+const now = new Date();
 
-  let live = new Date(liveDate);
-  const dead = new Date(deadDate);
+let live = new Date(liveDate);
 
-  // 🔥 IMPORTANT FIX
-  // If teacher selects current time or past → make exam live immediately
-  if (live <= now) {
-    live = now;
-  }
+if (live <= now) {
+  live = now;
+}
 
   const exam = await Exam.create({
     examName,

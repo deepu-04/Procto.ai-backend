@@ -1,10 +1,31 @@
 import asyncHandler from "express-async-handler";
 import Exam from "../models/examModel.js";
 
-// ================= GET ALL EXAMS =================
+// ================= GET ALL EXAMS (FIXED) =================
 const getExams = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // Find all exams
   const exams = await Exam.find().sort({ createdAt: -1 });
-  res.status(200).json(exams);
+
+  // Map through exams to add a personalized 'isAttempted' flag
+  const personalizedExams = exams.map((exam) => {
+    // Convert Mongoose document to plain object to add new properties
+    const examObj = exam.toObject();
+
+    // Check if current user's ID exists in the attemptedBy array
+    // We use .toString() to ensure we are comparing strings, not ObjectIds
+    examObj.isAttempted = exam.attemptedBy 
+      ? exam.attemptedBy.some((id) => id.toString() === userId.toString()) 
+      : false;
+
+    // Optional: Hide the full list of other students' IDs for privacy/security
+    delete examObj.attemptedBy; 
+
+    return examObj;
+  });
+
+  res.status(200).json(personalizedExams);
 });
 
 // ================= CREATE EXAM =================
@@ -16,8 +37,8 @@ const createExam = asyncHandler(async (req, res) => {
     liveDate,
     deadDate,
     bannerImage,
-    targetAudience, // NEW
-    targetEmails    // NEW
+    targetAudience,
+    targetEmails
   } = req.body;
 
   if (!examName || !totalQuestions || !duration || !liveDate || !deadDate) {
@@ -26,17 +47,10 @@ const createExam = asyncHandler(async (req, res) => {
   }
 
   const now = new Date();
-
-  // convert incoming dates
   let live = new Date(liveDate);
   let dead = new Date(deadDate);
 
-  // if teacher selects current time → make exam live immediately
-  if (live <= now) {
-    live = now;
-  }
-
-  // ensure deadline is after live time
+  if (live <= now) live = now;
   if (dead <= live) {
     res.status(400);
     throw new Error("Deadline must be after live date");
@@ -52,6 +66,7 @@ const createExam = asyncHandler(async (req, res) => {
     targetAudience: targetAudience || 'all',
     targetEmails: targetEmails || [],
     createdBy: req.user._id,
+    attemptedBy: [] // Initialize as empty array
   });
 
   res.status(201).json(exam);
@@ -59,7 +74,8 @@ const createExam = asyncHandler(async (req, res) => {
 
 // ================= DELETE EXAM =================
 const deleteExamById = asyncHandler(async (req, res) => {
-  const exam = await Exam.findOne({ examId: req.params.examId });
+  // Use _id or examId consistently based on your schema
+  const exam = await Exam.findOne({ _id: req.params.examId });
 
   if (!exam) {
     res.status(404);
@@ -67,14 +83,7 @@ const deleteExamById = asyncHandler(async (req, res) => {
   }
 
   await exam.deleteOne();
-
-  res.status(200).json({
-    message: "Exam deleted successfully",
-  });
+  res.status(200).json({ message: "Exam deleted successfully" });
 });
 
-export {
-  getExams,
-  createExam,
-  deleteExamById,
-};
+export { getExams, createExam, deleteExamById };

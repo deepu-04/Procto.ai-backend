@@ -9,24 +9,36 @@ const submitExam = asyncHandler(async (req, res) => {
   const { examId, answers = [], codingSubmissions = [] } = req.body;
   const userId = req.user._id;
 
-  // 1. STRENGTHENED VALIDATION
-  if (!examId || !mongoose.Types.ObjectId.isValid(examId)) {
-    return res.status(400).json({ 
-      message: `Invalid Exam ID format: ${examId || 'Missing ID'}`,
-      receivedId: examId 
-    });
+  if (!examId) {
+    return res.status(400).json({ message: "Exam ID is required" });
   }
 
+  // 1. RESOLVE EXAM ID (Crucial Fix for the UUID Error)
+  // This allows the frontend to send EITHER a MongoDB _id OR a custom UUID
+  const searchConditions = [{ examId: examId }];
+  if (mongoose.Types.ObjectId.isValid(examId)) {
+    searchConditions.push({ _id: examId });
+  }
+
+  const exam = await Exam.findOne({ $or: searchConditions });
+  
+  if (!exam) {
+    return res.status(404).json({ message: `Exam not found for ID: ${examId}` });
+  }
+
+  // Use the verified string ID for querying questions and results
+  const targetExamId = exam.examId || examId; 
+
   // 2. Prevent Duplicate Submission
-  const existingResult = await Result.findOne({ examId, userId });
+  const existingResult = await Result.findOne({ examId: targetExamId, userId });
   if (existingResult) {
     return res.status(400).json({ message: "You have already submitted this exam" });
   }
 
   // 3. Fetch Questions in Parallel
   const [mcqQuestions, codingQuestions] = await Promise.all([
-    Question.find({ examId }),
-    CodingQuestion.find({ examId })
+    Question.find({ $or: [{ examId: targetExamId }, { examId: exam._id }] }),
+    CodingQuestion.find({ $or: [{ examId: targetExamId }, { examId: exam._id }] })
   ]);
 
   if (mcqQuestions.length === 0 && codingQuestions.length === 0) {
@@ -65,7 +77,7 @@ const submitExam = asyncHandler(async (req, res) => {
 
   // 7. Save Result Record
   const result = await Result.create({
-    examId,
+    examId: targetExamId,
     userId,
     answers: mcqAnswersArray,
     codingSubmissions,
@@ -75,9 +87,9 @@ const submitExam = asyncHandler(async (req, res) => {
     percentage
   });
 
-  // 8. Atomic update to Exam model
+  // 8. Atomic update to Exam model using the true MongoDB _id
   await Exam.findByIdAndUpdate(
-    examId,
+    exam._id,
     { $addToSet: { attemptedBy: userId } },
     { new: true }
   );

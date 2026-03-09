@@ -2,6 +2,8 @@ import asyncHandler from "express-async-handler";
 import Question from "../models/quesModel.js";
 import CodingQuestion from "../models/codingQuestionModel.js";
 import Result from "../models/resultModel.js";
+// ================= CRITICAL IMPORT =================
+import Exam from "../models/examModel.js"; 
 
 const submitExam = asyncHandler(async (req, res) => {
   const { examId, answers = [], codingSubmissions = [] } = req.body;
@@ -84,6 +86,18 @@ const submitExam = asyncHandler(async (req, res) => {
     totalScore,
     percentage
   });
+
+  // ================= CRITICAL FIX: MARK AS ATTEMPTED =================
+  // Safely find the exam by UUID or MongoDB _id and push the user's ID into the array
+  const orConditions = [{ examId: examId }];
+  if (examId.match(/^[0-9a-fA-F]{24}$/)) {
+      orConditions.push({ _id: examId });
+  }
+
+  await Exam.findOneAndUpdate(
+    { $or: orConditions },
+    { $addToSet: { attemptedBy: userId } } // $addToSet guarantees the ID is added only once
+  );
 
   // ================= RESPONSE =================
   res.status(201).json({

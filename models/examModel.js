@@ -36,7 +36,6 @@ const examSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    // Added fields to match frontend Step 1
     targetAudience: {
       type: String,
       enum: ['all', 'specific'],
@@ -45,7 +44,15 @@ const examSchema = mongoose.Schema(
     targetEmails: {
       type: [String],
       default: []
-    }
+    },
+    // ================= CRITICAL NEW FIELD =================
+    // This tracks exactly which users have completed the exam
+    attemptedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ]
   },
   {
     timestamps: true,

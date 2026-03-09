@@ -1,4 +1,5 @@
 import asyncHandler from "express-async-handler";
+import mongoose from "mongoose";
 import Question from "../models/quesModel.js";
 import CodingQuestion from "../models/codingQuestionModel.js";
 import Result from "../models/resultModel.js";
@@ -8,17 +9,18 @@ const submitExam = asyncHandler(async (req, res) => {
   const { examId, answers = [], codingSubmissions = [] } = req.body;
   const userId = req.user._id;
 
-  if (!examId) {
-    return res.status(400).json({ message: "Valid exam ID is required" });
+  // 1. Validation
+  if (!examId || !mongoose.Types.ObjectId.isValid(examId)) {
+    return res.status(400).json({ message: "A valid Exam ID is required" });
   }
 
-  // 1. Prevent Duplicate Submission
+  // 2. Prevent Duplicate Submission
   const existingResult = await Result.findOne({ examId, userId });
   if (existingResult) {
-    return res.status(400).json({ message: "You already submitted this exam" });
+    return res.status(400).json({ message: "You have already submitted this exam" });
   }
 
-  // 2. Fetch Questions
+  // 3. Fetch Questions in Parallel
   const [mcqQuestions, codingQuestions] = await Promise.all([
     Question.find({ examId }),
     CodingQuestion.find({ examId })
@@ -28,39 +30,47 @@ const submitExam = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "No questions found for this exam" });
   }
 
-  // 3. Logic for Marks (Simplified for brevity, keep your original logic here)
+  // 4. Calculate MCQ Marks
   let mcqMarks = 0;
   answers.forEach(ans => {
     const q = mcqQuestions.find(q => q._id.toString() === ans.questionId?.toString());
-    if (q && q.correctAnswer === ans.selectedOption) {
-      mcqMarks += (q.ansmarks || 1);
+    
+    // Compare answers (trimmed strings to prevent whitespace errors)
+    if (q && String(q.correctAnswer).trim() === String(ans.selectedOption).trim()) {
+      mcqMarks += (Number(q.ansmarks) || 1);
     }
   });
 
+  // 5. Calculate Coding Marks 
   let codingMarks = 0;
-  const safeCodingSubmissions = codingSubmissions.map(sub => {
-    codingMarks += (sub.marks || 0);
-    return { ...sub };
+  codingSubmissions.forEach(sub => {
+    codingMarks += (Number(sub.marks) || 0);
   });
 
+  // 6. Calculate Totals and Percentage
   const totalScore = mcqMarks + codingMarks;
-  const totalMarksPossible = [...mcqQuestions, ...codingQuestions].reduce((sum, q) => sum + (q.ansmarks || 1), 0);
-  const percentage = totalMarksPossible > 0 ? Number(((totalScore / totalMarksPossible) * 100).toFixed(2)) : 0;
+  
+  const totalMcqPossible = mcqQuestions.reduce((sum, q) => sum + (Number(q.ansmarks) || 1), 0);
+  const totalCodingPossible = codingQuestions.reduce((sum, q) => sum + (Number(q.ansmarks) || 10), 0);
+  const totalMarksPossible = totalMcqPossible + totalCodingPossible;
 
-  // 4. Save Result
+  const percentage = totalMarksPossible > 0 
+    ? Number(((totalScore / totalMarksPossible) * 100).toFixed(2)) 
+    : 0;
+
+  // 7. Save Result Record
   const result = await Result.create({
     examId,
     userId,
     answers,
-    codingSubmissions: safeCodingSubmissions,
+    codingSubmissions,
     totalMarks: mcqMarks,
     codingMarks,
     totalScore,
     percentage
   });
 
-  // 5. CRITICAL FIX: Push only the current user to the attemptedBy array
-  // Use findOneAndUpdate with $addToSet to prevent duplicates
+  // 8. Atomic update to Exam model ($addToSet prevents duplicate IDs in the array)
   await Exam.findByIdAndUpdate(
     examId,
     { $addToSet: { attemptedBy: userId } },
@@ -70,7 +80,11 @@ const submitExam = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     message: "Exam submitted successfully",
-    data: result
+    data: {
+      score: totalScore,
+      total: totalMarksPossible,
+      percentage: percentage + "%"
+    }
   });
 });
 

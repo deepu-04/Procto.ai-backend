@@ -7,25 +7,21 @@ const resultSchema = mongoose.Schema(
       required: true,
       index: true,
     },
-
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-
-    answers: {
-      type: Map,
-      of: String,
-      default: {},
-    },
-
+    // Updated to accept the Array of objects sent by the frontend
+    answers: [
+      {
+        questionId: { type: mongoose.Schema.Types.ObjectId },
+        selectedOption: { type: Number },
+      }
+    ],
     codingSubmissions: [
       {
-        questionId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "CodingQuestion",
-        },
+        questionId: { type: mongoose.Schema.Types.ObjectId }, // Flexible ref
         code: String,
         language: String,
         marks: {
@@ -34,27 +30,22 @@ const resultSchema = mongoose.Schema(
         },
       },
     ],
-
     totalMarks: {
       type: Number,
       default: 0,
     },
-
     codingMarks: {
       type: Number,
       default: 0,
     },
-
     totalScore: {
       type: Number,
       default: 0,
     },
-
     percentage: {
       type: Number,
       default: 0,
     },
-
     showToStudent: {
       type: Boolean,
       default: true,

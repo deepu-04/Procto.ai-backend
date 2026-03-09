@@ -3,17 +3,12 @@ import Exam from "../models/examModel.js";
 
 // ================= GET ALL EXAMS =================
 const getExams = asyncHandler(async (req, res) => {
-
   const exams = await Exam.find().sort({ createdAt: -1 });
-
   res.status(200).json(exams);
-
 });
-
 
 // ================= CREATE EXAM =================
 const createExam = asyncHandler(async (req, res) => {
-
   const {
     examName,
     totalQuestions,
@@ -21,6 +16,8 @@ const createExam = asyncHandler(async (req, res) => {
     liveDate,
     deadDate,
     bannerImage,
+    targetAudience, // NEW
+    targetEmails    // NEW
   } = req.body;
 
   if (!examName || !totalQuestions || !duration || !liveDate || !deadDate) {
@@ -52,17 +49,16 @@ const createExam = asyncHandler(async (req, res) => {
     liveDate: live,
     deadDate: dead,
     bannerImage,
+    targetAudience: targetAudience || 'all',
+    targetEmails: targetEmails || [],
     createdBy: req.user._id,
   });
 
   res.status(201).json(exam);
-
 });
-
 
 // ================= DELETE EXAM =================
 const deleteExamById = asyncHandler(async (req, res) => {
-
   const exam = await Exam.findOne({ examId: req.params.examId });
 
   if (!exam) {
@@ -75,9 +71,7 @@ const deleteExamById = asyncHandler(async (req, res) => {
   res.status(200).json({
     message: "Exam deleted successfully",
   });
-
 });
-
 
 export {
   getExams,

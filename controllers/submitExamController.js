@@ -9,9 +9,12 @@ const submitExam = asyncHandler(async (req, res) => {
   const { examId, answers = [], codingSubmissions = [] } = req.body;
   const userId = req.user._id;
 
-  // 1. Validation
+  // 1. STRENGTHENED VALIDATION
   if (!examId || !mongoose.Types.ObjectId.isValid(examId)) {
-    return res.status(400).json({ message: "A valid Exam ID is required" });
+    return res.status(400).json({ 
+      message: `Invalid Exam ID format: ${examId || 'Missing ID'}`,
+      receivedId: examId 
+    });
   }
 
   // 2. Prevent Duplicate Submission
@@ -30,12 +33,14 @@ const submitExam = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "No questions found for this exam" });
   }
 
-  // 4. Calculate MCQ Marks
+  // 4. Calculate MCQ Marks (Handling both Object and Array incoming formats)
   let mcqMarks = 0;
-  answers.forEach(ans => {
+  const mcqAnswersArray = Array.isArray(answers) 
+    ? answers 
+    : Object.entries(answers).map(([qId, opt]) => ({ questionId: qId, selectedOption: opt }));
+
+  mcqAnswersArray.forEach(ans => {
     const q = mcqQuestions.find(q => q._id.toString() === ans.questionId?.toString());
-    
-    // Compare answers (trimmed strings to prevent whitespace errors)
     if (q && String(q.correctAnswer).trim() === String(ans.selectedOption).trim()) {
       mcqMarks += (Number(q.ansmarks) || 1);
     }
@@ -62,7 +67,7 @@ const submitExam = asyncHandler(async (req, res) => {
   const result = await Result.create({
     examId,
     userId,
-    answers,
+    answers: mcqAnswersArray,
     codingSubmissions,
     totalMarks: mcqMarks,
     codingMarks,
@@ -70,7 +75,7 @@ const submitExam = asyncHandler(async (req, res) => {
     percentage
   });
 
-  // 8. Atomic update to Exam model ($addToSet prevents duplicate IDs in the array)
+  // 8. Atomic update to Exam model
   await Exam.findByIdAndUpdate(
     examId,
     { $addToSet: { attemptedBy: userId } },
@@ -83,7 +88,8 @@ const submitExam = asyncHandler(async (req, res) => {
     data: {
       score: totalScore,
       total: totalMarksPossible,
-      percentage: percentage + "%"
+      percentage: percentage + "%",
+      resultId: result._id
     }
   });
 });
